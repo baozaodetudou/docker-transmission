@@ -17,7 +17,7 @@ RUN \
   apk add --no-cache --upgrade \
     findutils \
     p7zip \
-    python3 && \
+    python3 gcc linux-headers g++ make git make gettext-dev curl-dev cmake python3 openssl-dev && \
   echo "**** install unrar from source ****" && \
   mkdir /tmp/unrar && \
   curl -o \
@@ -30,19 +30,23 @@ RUN \
   make && \
   install -v -m755 unrar /usr/local/bin && \
   echo "**** install transmission ****" && \
-  if [ -z ${TRANSMISSION_VERSION+x} ]; then \
-    TRANSMISSION_VERSION=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/edge/community/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp \
-    && awk '/^P:transmission$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://'); \
-  fi && \
-  apk add --no-cache --upgrade \
-    transmission-cli==${TRANSMISSION_VERSION} \
-    transmission-daemon==${TRANSMISSION_VERSION} && \
+  export GIT_SSL_NO_VERIFY=1 && git clone https://github.com/Shurelol/transmission.git /tmp/transmission \
+    && cd /tmp/transmission && mkdir build && cd build \
+    && git submodule update --init --recursive \
+    && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .. \
+    && make && make install \
+    && \
+    ln -s /usr/local/bin/transmission-daemon /usr/bin/transmission-daemon && \
+    ln -s /usr/local/bin/transmission-remote /usr/bin/transmission-remote && \
   echo "**** cleanup ****" && \
   apk del --purge \
-    build-dependencies && \
+    build-dependencies gcc linux-headers g++ make git make gettext-dev curl-dev cmake python3 openssl-dev && \
   rm -rf \
     /root/.cache \
-    /tmp/*
+    /tmp/* \
+    /usr/local/bin/transmission-create \
+    /usr/local/bin/transmission-edit \
+    /usr/local/bin/transmission-show
 
 # copy local files
 COPY root/ /
